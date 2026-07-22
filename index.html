@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>동사 마스터 - 3단 변화 게임</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Gowun Batang & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for cute icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti for Celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Gowun Batang', 'sans-serif'],
+                    },
+                    colors: {
+                        pastel: {
+                            pink: {
+                                50: '#FFF5F5',
+                                100: '#FFE3E3',
+                                200: '#FFD2D2',
+                                300: '#FFA8A8',
+                                400: '#FF8787',
+                                500: '#FF6B6B'
+                            },
+                            purple: {
+                                50: '#F8F0FC',
+                                100: '#F3E8FF',
+                                200: '#E9D5FF',
+                                300: '#D8B4FE',
+                                400: '#C084FC',
+                                500: '#A855F7'
+                            },
+                            blue: {
+                                50: '#F0F9FF',
+                                100: '#E0F2FE',
+                                200: '#BAE6FD',
+                                300: '#7DD3FC',
+                                400: '#38BDF8',
+                                500: '#0EA5E9'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Strict Viewport Scroll Lock */
+        html, body {
+            height: 100vh;
+            height: 100dvh;
+            max-height: 100vh;
+            max-height: 100dvh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Gowun Batang', sans-serif;
+            background: linear-gradient(135deg, #FFF5F5 0%, #F3E8FF 100%);
+        }
+        
+        /* Glassmorphism panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Card styles and shake animations */
+        .game-card {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .game-card:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .shake-error {
+            animation: shake 0.4s ease-in-out;
+            border-color: #f87171 !important;
+            background-color: #fee2e2 !important;
+            color: #ef4444 !important;
+        }
+
+        /* Custom scrollbar for table container */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(243, 232, 255, 0.5);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(216, 180, 254, 0.8);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(168, 85, 247, 0.8);
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-6 text-gray-800 flex flex-col md:flex-row gap-4 h-full max-h-screen overflow-hidden">
+
+    <!-- LEFT SIDEBAR / MENU BAR -->
+    <aside class="w-full md:w-64 flex flex-col md:flex-col justify-between p-3 sm:p-4 rounded-2xl glass-panel shadow-sm shrink-0 md:h-full gap-3 overflow-y-auto custom-scrollbar">
+        <div class="flex flex-row md:flex-col gap-2.5 items-center md:items-stretch w-full justify-between md:justify-start">
+            
+            <!-- 1. 프로그램 이름 (Brand Logo) -->
+            <div class="flex items-center gap-2.5 cursor-pointer shrink-0" onclick="goHome()">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-pastel-pink-300 to-pastel-purple-300 flex items-center justify-center text-white shadow-sm shrink-0">
+                    <i class="fa-solid fa-graduation-cap text-base sm:text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xs sm:text-sm md:text-lg text-pastel-purple-500 tracking-wide leading-tight">동사 마스터</h1>
+                    <p class="text-[9px] sm:text-[10px] text-gray-400">Conjugation Game</p>
+                </div>
+            </div>
+
+            <!-- 2. 최고 기록 & 등록된 단어 정보 -->
+            <div id="sidebar-global-stats" class="hidden md:flex flex-col gap-2 p-3 rounded-xl bg-white/50 border border-pastel-purple-100 text-[11px] w-full">
+                <div class="flex justify-between items-center text-gray-500">
+                    <span><i class="fa-solid fa-spell-check text-pastel-purple-400"></i> 등록된 단어</span>
+                    <span class="font-bold text-pastel-purple-600"><span id="sidebar-verb-count">0</span>개</span>
+                </div>
+                <div class="border-t border-dashed border-pastel-purple-100 my-1"></div>
+                <div class="text-gray-400 font-semibold mb-0.5">최고 기록</div>
+                <div class="flex justify-between items-center text-gray-600">
+                    <span>과거형 모드:</span>
+                    <span id="sidebar-best-past" class="font-mono font-bold">-</span>
+                </div>
+                <div class="flex justify-between items-center text-gray-600">
+                    <span>과거분사형:</span>
+                    <span id="sidebar-best-pp" class="font-mono font-bold">-</span>
+                </div>
+            </div>
+
+            <!-- 3. 맞춰야 할 단어 (게임 시작 시에만 표시) -->
+            <div id="sidebar-target-word" class="hidden flex flex-col justify-center p-2 md:p-3 rounded-xl bg-pastel-pink-50 border border-pastel-pink-200 text-left shrink-0 md:w-full">
+                <span class="text-[8px] sm:text-[9px] font-bold text-pastel-pink-500 uppercase tracking-wider leading-none mb-1">맞춰야 할 뜻</span>
+                <h3 id="game-target-meaning" class="text-sm sm:text-base md:text-xl lg:text-2xl font-extrabold text-gray-800 leading-none transition duration-200">먹다</h3>
+            </div>
+
+            <!-- 4. 타이머 & 진행률 (게임 시작 시에만 표시) -->
+            <div id="sidebar-live-game" class="hidden flex flex-row md:flex-col items-center md:items-stretch justify-between gap-2 p-2 md:p-3 rounded-xl bg-pastel-purple-50 border border-pastel-purple-100 text-[10px] md:text-[11px] shrink-0 md:w-full">
+                <div class="flex items-center gap-1.5 sm:gap-2">
+                    <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-pastel-purple-100 flex items-center justify-center text-pastel-purple-500 shrink-0">
+                        <i class="fa-solid fa-stopwatch text-[10px] sm:text-xs animate-pulse"></i>
+                    </div>
+                    <div>
+                        <span class="text-[8px] text-gray-400 block font-semibold leading-none mb-0.5">경과 시간</span>
+                        <span id="game-timer" class="text-xs sm:text-sm md:text-base font-bold text-pastel-purple-500 tracking-wider font-mono leading-none">00:00.00</span>
+                    </div>
+                </div>
+                <div class="hidden md:block border-t border-dashed border-pastel-purple-200 my-1"></div>
+                <div class="flex items-center justify-between gap-1">
+                    <span class="text-gray-400 font-semibold hidden md:inline">진행도:</span>
+                    <span class="font-bold text-gray-700 text-[10px] sm:text-xs md:text-sm"><span id="sidebar-progress-current">0</span> / <span id="sidebar-progress-total">10</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Action Buttons -->
+        <div class="flex flex-row md:flex-col gap-2 shrink-0 w-full md:w-full">
+            <!-- 홈으로 버튼 (게임 중 활성화) -->
+            <button id="sidebar-home-btn" onclick="confirmExitGame()" class="hidden flex-1 md:flex-none w-full px-3 py-1.5 md:py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition text-xs font-bold flex items-center justify-center gap-2 shadow-sm">
+                <i class="fa-solid fa-house"></i> <span>홈으로</span>
+            </button>
+            <!-- 단어장 관리 버튼 -->
+            <button id="sidebar-db-btn" onclick="openDatabaseManager()" class="flex-1 md:flex-none w-full px-3 py-1.5 md:py-2.5 rounded-xl bg-white border border-pastel-purple-200 text-pastel-purple-500 hover:bg-pastel-purple-50 transition text-xs font-semibold flex items-center justify-center gap-2 shadow-sm">
+                <i class="fa-solid fa-database"></i> <span>단어장 관리</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN INTERACTIVE WORKSPACE (Right Pane) -->
+    <main class="flex-1 flex flex-col min-h-0 overflow-hidden relative h-full">
+
+        <!-- VIEW 1: HOME SCREEN -->
+        <section id="view-home" class="w-full max-w-2xl mx-auto my-auto glass-panel rounded-3xl p-5 md:p-8 shadow-xl text-center flex flex-col items-center gap-4">
+            <h2 class="text-lg md:text-2xl font-bold text-gray-800 font-sans">동사 변화, 이제 즐겁게 외워요!</h2>
+            <p class="text-gray-500 text-xs md:text-sm max-w-md leading-relaxed">
+                상단의 한글 뜻을 보고, 알맞은 영어 동사의 3단 변화를 순서대로 클릭해 카드를 터뜨리는 매칭 게임입니다.
+            </p>
+
+            <!-- Mode Selection Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full mt-1">
+                <!-- Mode A: Past Tense -->
+                <button onclick="selectMode('past')" class="group p-4 rounded-xl border-2 border-dashed border-pastel-pink-200 hover:border-pastel-pink-400 bg-white/50 hover:bg-white text-left transition duration-300 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                    <div class="absolute right-[-10px] bottom-[-10px] opacity-10 text-6xl text-pastel-pink-400 group-hover:scale-110 transition duration-300">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="p-1.5 rounded-lg bg-pastel-pink-100 text-pastel-pink-500 text-xs"><i class="fa-solid fa-bolt"></i></span>
+                            <h3 class="font-bold text-gray-800 text-sm md:text-base">과거형 모드</h3>
+                        </div>
+                        <p class="text-[10px] md:text-[11px] text-gray-500 leading-normal">원형 → 과거형 2개 카드를 순서대로 연결합니다.</p>
+                    </div>
+                    <div class="mt-3.5 flex justify-between items-center w-full">
+                        <span class="text-[9px] bg-pastel-pink-100 text-pastel-pink-600 px-2 py-0.5 rounded-full font-bold">총 15단어</span>
+                        <span class="text-xs font-semibold text-pastel-pink-500 group-hover:translate-x-1 transition">도전하기 <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+                </button>
+
+                <!-- Mode B: Past Participle -->
+                <button onclick="selectMode('pp')" class="group p-4 rounded-xl border-2 border-dashed border-pastel-purple-200 hover:border-pastel-purple-400 bg-white/50 hover:bg-white text-left transition duration-300 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                    <div class="absolute right-[-10px] bottom-[-10px] opacity-10 text-6xl text-pastel-purple-400 group-hover:scale-110 transition duration-300">
+                        <i class="fa-solid fa-cubes"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="p-1.5 rounded-lg bg-pastel-purple-100 text-pastel-purple-500 text-xs"><i class="fa-solid fa-star"></i></span>
+                            <h3 class="font-bold text-gray-800 text-sm md:text-base">과거분사형 모드</h3>
+                        </div>
+                        <p class="text-[10px] md:text-[11px] text-gray-500 leading-normal">원형 → 과거형 → 과거분사 3개 카드를 매칭합니다.</p>
+                    </div>
+                    <div class="mt-3.5 flex justify-between items-center w-full">
+                        <span class="text-[9px] bg-pastel-purple-100 text-pastel-purple-600 px-2 py-0.5 rounded-full font-bold">총 10단어</span>
+                        <span class="text-xs font-semibold text-pastel-purple-500 group-hover:translate-x-1 transition">도전하기 <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Quick stats view (mainly for mobile) -->
+            <div class="md:hidden w-full border-t border-dashed border-gray-200 pt-3 flex justify-between items-center text-[10px] text-gray-400">
+                <span>등록된 동사 수: <strong id="home-verb-count" class="text-pastel-purple-500">0</strong>개</span>
+                <span>과거 최고: <strong id="best-past" class="text-gray-700">-</strong> | 분사 최고: <strong id="best-pp" class="text-gray-700">-</strong></span>
+            </div>
+        </section>
+
+
+        <!-- VIEW 2: GAMEPLAY FIELD SCREEN (No scroll layout, dashboard elements removed) -->
+        <section id="view-game" class="w-full hidden flex-1 flex flex-col gap-2.5 min-h-0 overflow-hidden h-full">
+            <!-- Active Cards Board Grid -->
+            <div class="flex-1 min-h-0 bg-white/20 p-2 sm:p-3 rounded-2xl border border-white/40 shadow-inner overflow-y-auto custom-scrollbar">
+                <div id="cards-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 w-full">
+                    <!-- Cards injected by JS -->
+                </div>
+            </div>
+
+            <!-- Color Guide Legend (Compact status bar) -->
+            <div class="flex gap-4 justify-center items-center text-[9px] sm:text-[10px] font-semibold text-gray-500 shrink-0 bg-white/40 py-2 px-3 rounded-lg border border-white/20">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded bg-pastel-blue-100 border border-pastel-blue-300"></span>
+                    <span>원형 (Base)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded bg-pastel-pink-100 border border-pastel-pink-300"></span>
+                    <span>과거형 (Past)</span>
+                </div>
+                <div id="legend-pp" class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded bg-pastel-purple-100 border border-pastel-purple-300"></span>
+                    <span>과거분사 (PP)</span>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- VIEW 3: GAME OVER / RESULT SCREEN -->
+        <section id="view-result" class="w-full max-w-md mx-auto my-auto hidden glass-panel rounded-3xl p-6 md:p-8 shadow-xl text-center flex flex-col items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-pastel-pink-300 to-pastel-purple-300 flex items-center justify-center text-white shadow-lg animate-bounce">
+                <i class="fa-solid fa-trophy text-2xl"></i>
+            </div>
+            
+            <div>
+                <span class="text-[9px] text-pastel-purple-500 bg-pastel-purple-100 px-3 py-0.5 rounded-full font-bold uppercase tracking-wider">GAME CLEAR!</span>
+                <h2 class="text-lg md:text-xl font-bold text-gray-800 mt-1.5 font-sans">우와! 완벽하게 마스터했어요!</h2>
+            </div>
+
+            <div class="w-full bg-white/80 rounded-xl p-4 border border-pastel-purple-100 flex flex-col gap-2 shadow-inner text-xs">
+                <div class="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span class="text-gray-400">선택 모드</span>
+                    <span id="result-mode" class="font-bold text-gray-700">-</span>
+                </div>
+                <div class="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span class="text-gray-400">소요 시간</span>
+                    <span id="result-time" class="text-base font-bold text-pastel-purple-500 font-mono">-</span>
+                </div>
+                <div class="flex justify-between items-center py-1.5">
+                    <span class="text-gray-400">기록 정보</span>
+                    <span id="result-record-badge" class="font-bold text-emerald-500">-</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2 w-full mt-1.5">
+                <button onclick="restartGame()" class="flex-1 py-2.5 px-4 bg-gradient-to-r from-pastel-pink-400 to-pastel-pink-500 hover:from-pastel-pink-500 hover:to-pastel-pink-600 text-white font-bold rounded-lg shadow-md transition flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-rotate-right"></i> 다시 도전하기
+                </button>
+                <button onclick="goHome()" class="flex-1 py-2.5 px-4 bg-white border border-pastel-purple-200 hover:bg-pastel-purple-50 text-pastel-purple-500 font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-house"></i> 홈으로
+                </button>
+            </div>
+        </section>
+
+
+        <!-- VIEW 4: DATABASE & WORD MANAGER -->
+        <section id="view-database" class="w-full hidden glass-panel rounded-2xl p-4 shadow-xl flex-1 flex flex-col gap-3 min-h-0 overflow-hidden h-full">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-gray-200 shrink-0">
+                <div>
+                    <h2 class="text-sm md:text-base font-bold text-gray-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-spell-check text-pastel-purple-500"></i> 단어장 관리 및 데이터 업로드
+                    </h2>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="resetToDefaults()" class="flex-1 sm:flex-none px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg border border-red-200 text-xs font-semibold transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-rotate"></i> 초기화
+                    </button>
+                    <button onclick="goHome()" class="flex-1 sm:flex-none px-3 py-1.5 bg-pastel-purple-400 hover:bg-pastel-purple-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-check"></i> 저장 및 닫기
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable content pane containing form and database table -->
+            <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-3 overflow-y-auto custom-scrollbar p-0.5">
+                <!-- Add New Word & Bulk Upload Panel -->
+                <div class="lg:col-span-1 flex flex-col gap-3">
+                    <!-- Section A: Add Single Verb -->
+                    <div class="bg-white/80 border border-pastel-purple-100 rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
+                        <h3 class="font-bold text-gray-800 text-xs flex items-center gap-1"><i class="fa-solid fa-plus-circle text-pastel-pink-400"></i> 개별 단어 추가</h3>
+                        <form id="add-verb-form" onsubmit="handleSingleAdd(event)" class="flex flex-col gap-1.5">
+                            <div>
+                                <label class="text-[9px] font-bold text-gray-400 block">동사 원형 (Base Form)</label>
+                                <input type="text" id="add-base" placeholder="예: go" required class="w-full px-2 py-1 border border-pastel-purple-100 rounded-md text-xs focus:outline-none focus:border-pastel-purple-400">
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-bold text-gray-400 block">과거형 (Past Form)</label>
+                                <input type="text" id="add-past" placeholder="예: went" required class="w-full px-2 py-1 border border-pastel-purple-100 rounded-md text-xs focus:outline-none focus:border-pastel-purple-400">
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-bold text-gray-400 block">과거분사형 (Past Participle)</label>
+                                <input type="text" id="add-pp" placeholder="예: gone" required class="w-full px-2 py-1 border border-pastel-purple-100 rounded-md text-xs focus:outline-none focus:border-pastel-purple-400">
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-bold text-gray-400 block">한국어 뜻 (Meaning)</label>
+                                <input type="text" id="add-meaning" placeholder="예: 가다" required class="w-full px-2 py-1 border border-pastel-purple-100 rounded-md text-xs focus:outline-none focus:border-pastel-purple-400">
+                            </div>
+                            <button type="submit" class="w-full py-1.5 bg-pastel-pink-400 hover:bg-pastel-pink-500 text-white font-bold rounded-md text-xs transition shadow-sm mt-1">
+                                <i class="fa-solid fa-plus"></i> 동사 추가하기
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Section B: Bulk Sheet Import (EXCEL, GOOGLE SHEETS) -->
+                    <div class="bg-white/80 border border-pastel-purple-100 rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-bold text-gray-800 text-xs flex items-center gap-1"><i class="fa-solid fa-file-excel text-emerald-500"></i> 시트 일괄 업로드</h3>
+                            <button onclick="toggleImportHelp()" class="text-[9px] text-pastel-purple-500 underline font-semibold">사용 도움말</button>
+                        </div>
+                        
+                        <!-- Help description toggle -->
+                        <div id="import-help-box" class="hidden text-[9px] bg-amber-50 text-amber-800 border border-amber-200 p-2 rounded-md leading-relaxed">
+                            <strong>📋 복사 형식 가이드:</strong><br>
+                            스프레드시트에서 아래 4개 열 표를 블록 복사(Ctrl+C)하여 붙여넣으세요.<br>
+                            <strong>[원형] [과거형] [과거분사] [한국어 뜻]</strong>
+                        </div>
+
+                        <textarea id="bulk-input-area" rows="2" placeholder="go&#9;went&#9;gone&#9;가다&#10;eat&#9;ate&#9;eaten&#9;먹다" class="w-full p-2 border border-pastel-purple-100 rounded-md text-[10px] font-mono focus:outline-none focus:border-pastel-purple-400 bg-gray-50"></textarea>
+                        
+                        <button onclick="handleBulkImport()" class="w-full py-1.5 bg-pastel-purple-400 hover:bg-pastel-purple-500 text-white font-bold rounded-md text-xs transition shadow-sm">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> 일괄 붙여넣기 등록
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Database List Table -->
+                <div class="lg:col-span-2 flex flex-col gap-2 min-h-[250px]">
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-xs text-gray-400 font-semibold">동사 리스트 (총 <strong id="db-total-count" class="text-pastel-purple-500">0</strong>개)</span>
+                        <span class="text-[9px] text-gray-400 italic">원활한 게임을 위해 최소 15개 이상 필요합니다.</span>
+                    </div>
+                    
+                    <div class="bg-white border border-pastel-purple-100 rounded-xl overflow-hidden shadow-sm flex-1 overflow-y-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-pastel-purple-50 text-pastel-purple-600 font-bold sticky top-0 border-b border-pastel-purple-100 z-10 text-[10px]">
+                                    <th class="p-2">원형</th>
+                                    <th class="p-2">과거형</th>
+                                    <th class="p-2">과거분사</th>
+                                    <th class="p-2">한국어 뜻</th>
+                                    <th class="p-2 text-center">삭제</th>
+                                </tr>
+                            </thead>
+                            <tbody id="db-table-body" class="divide-y divide-gray-100">
+                                <!-- Dynamically generated rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Custom alert modal replacing alert() -->
+    <div id="custom-alert-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-5 shadow-xl max-w-xs w-full mx-4 border border-pastel-purple-100 text-center transform scale-95 transition-transform duration-300">
+            <div id="alert-icon-wrapper" class="w-10 h-10 rounded-full mx-auto flex items-center justify-center text-lg mb-2">
+                <!-- Icon dynamically set -->
+            </div>
+            <h3 id="alert-title" class="font-bold text-gray-800 text-sm">알림</h3>
+            <p id="alert-message" class="text-xs text-gray-500 mt-1.5 leading-relaxed">알림 내용</p>
+            <div class="mt-4 flex gap-2">
+                <button id="alert-confirm-btn" class="flex-1 py-1.5 bg-pastel-purple-400 hover:bg-pastel-purple-500 text-white font-bold rounded-lg text-xs transition shadow-sm">
+                    확인
+                </button>
+                <button id="alert-cancel-btn" class="flex-1 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-lg text-xs transition shadow-sm hidden">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Rich Set of Irregular Verbs (25 Common Verbs)
+        const defaultVerbsList = [
+            { id: 1, base: "go", past: "went", pp: "gone", meaning: "가다" },
+            { id: 2, base: "see", past: "saw", pp: "seen", meaning: "보다" },
+            { id: 3, base: "eat", past: "ate", pp: "eaten", meaning: "먹다" },
+            { id: 4, base: "do", past: "did", pp: "done", meaning: "하다" },
+            { id: 5, base: "write", past: "wrote", pp: "written", meaning: "쓰다" },
+            { id: 6, base: "run", past: "ran", pp: "run", meaning: "달리다" },
+            { id: 7, base: "come", past: "came", pp: "come", meaning: "오다" },
+            { id: 8, base: "take", past: "took", pp: "taken", meaning: "가져가다" },
+            { id: 9, base: "give", past: "gave", pp: "given", meaning: "주다" },
+            { id: 10, base: "speak", past: "spoke", pp: "spoken", meaning: "말하다" },
+            { id: 11, base: "break", past: "broke", pp: "broken", meaning: "부수다" },
+            { id: 12, base: "buy", past: "bought", pp: "bought", meaning: "사다" },
+            { id: 13, base: "make", past: "made", pp: "made", meaning: "만들다" },
+            { id: 14, base: "keep", past: "kept", pp: "kept", meaning: "유지하다" },
+            { id: 15, base: "begin", past: "began", pp: "begun", meaning: "시작하다" },
+            { id: 16, base: "sing", past: "sang", pp: "sung", meaning: "노래하다" },
+            { id: 17, base: "drink", past: "drank", pp: "drunk", meaning: "마시다" },
+            { id: 18, base: "know", past: "knew", pp: "known", meaning: "알다" },
+            { id: 19, base: "wear", past: "wore", pp: "worn", meaning: "입다" },
+            { id: 20, base: "swim", past: "swam", pp: "swum", meaning: "수영하다" },
+            { id: 21, base: "find", past: "found", pp: "found", meaning: "찾다" },
+            { id: 22, base: "drive", past: "drove", pp: "driven", meaning: "운전하다" },
+            { id: 23, base: "fly", past: "flew", pp: "flown", meaning: "날다" },
+            { id: 24, base: "forget", past: "forgot", pp: "forgotten", meaning: "잊다" },
+            { id: 25, base: "grow", past: "grew", pp: "grown", meaning: "자라다" }
+        ];
+
+        // App state variables
+        let database = [];
+        let gameMode = 'past'; // 'past' or 'pp'
+        let gameVerbs = []; // Verbs picked for current game
+        let activeCards = []; // Deployed individual card items on board
+        let matchedVerbIds = []; // Verbs completed in game
+        let currentTargetVerb = null; // Current target verb object
+        let selectedSequence = []; // Elements clicked in active validation round
+        
+        // Timer variables
+        let timerInterval = null;
+        let gameStartTime = 0;
+        let totalElapsedMs = 0;
+
+        // Custom modal action triggers
+        let alertConfirmCallback = null;
+
+        // Initialize App & Database
+        window.onload = function() {
+            loadDatabase();
+            updateHomeStats();
+            renderDatabaseTable();
+        };
+
+        function loadDatabase() {
+            const stored = localStorage.getItem('malling_verbs_db_v2');
+            if (stored) {
+                database = JSON.parse(stored);
+            } else {
+                database = [...defaultVerbsList];
+                saveDatabase();
+            }
+        }
+
+        function saveDatabase() {
+            localStorage.setItem('malling_verbs_db_v2', JSON.stringify(database));
+            updateHomeStats();
+        }
+
+        function updateHomeStats() {
+            const totalCount = database.length;
+            
+            // Home & Sidebar stats sync
+            document.getElementById('sidebar-verb-count').innerText = totalCount;
+            document.getElementById('db-total-count').innerText = totalCount;
+            
+            const homeVerbEl = document.getElementById('home-verb-count');
+            if (homeVerbEl) homeVerbEl.innerText = totalCount;
+            
+            // Best records
+            const bestPast = localStorage.getItem('best_record_past');
+            const bestPP = localStorage.getItem('best_record_pp');
+            
+            const formattedPast = bestPast ? formatTimeMs(parseInt(bestPast)) : '-';
+            const formattedPP = bestPP ? formatTimeMs(parseInt(bestPP)) : '-';
+            
+            document.getElementById('sidebar-best-past').innerText = formattedPast;
+            document.getElementById('sidebar-best-pp').innerText = formattedPP;
+            
+            const hBestPastEl = document.getElementById('best-past');
+            const hBestPPEl = document.getElementById('best-pp');
+            if (hBestPastEl && hBestPPEl) {
+                hBestPastEl.innerText = formattedPast;
+                hBestPPEl.innerText = formattedPP;
+            }
+        }
+
+        // Custom alert implementation (No alert/confirm permitted)
+        function showCustomAlert(title, message, type = 'info', onConfirm = null, showCancel = false) {
+            const modal = document.getElementById('custom-alert-modal');
+            const titleEl = document.getElementById('alert-title');
+            const msgEl = document.getElementById('alert-message');
+            const iconWrapper = document.getElementById('alert-icon-wrapper');
+            const confirmBtn = document.getElementById('alert-confirm-btn');
+            const cancelBtn = document.getElementById('alert-cancel-btn');
+
+            titleEl.innerText = title;
+            msgEl.innerText = message;
+            alertConfirmCallback = onConfirm;
+
+            iconWrapper.className = "w-10 h-10 rounded-full mx-auto flex items-center justify-center text-base mb-2";
+            if (type === 'success') {
+                iconWrapper.classList.add('bg-emerald-100', 'text-emerald-500');
+                iconWrapper.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            } else if (type === 'error') {
+                iconWrapper.classList.add('bg-rose-100', 'text-rose-500');
+                iconWrapper.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
+            } else if (type === 'warning') {
+                iconWrapper.classList.add('bg-amber-100', 'text-amber-500');
+                iconWrapper.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else {
+                iconWrapper.classList.add('bg-pastel-purple-100', 'text-pastel-purple-500');
+                iconWrapper.innerHTML = '<i class="fa-solid fa-bell"></i>';
+            }
+
+            if (showCancel) {
+                cancelBtn.classList.remove('hidden');
+            } else {
+                cancelBtn.classList.add('hidden');
+            }
+
+            // Bind events
+            confirmBtn.onclick = function() {
+                hideCustomAlert();
+                if (alertConfirmCallback) alertConfirmCallback(true);
+            };
+            cancelBtn.onclick = function() {
+                hideCustomAlert();
+                if (alertConfirmCallback) alertConfirmCallback(false);
+            };
+
+            // Show animation
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 50);
+        }
+
+        function hideCustomAlert() {
+            const modal = document.getElementById('custom-alert-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Navigation / View Switching
+        function showView(viewId) {
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-game').classList.add('hidden');
+            document.getElementById('view-result').classList.add('hidden');
+            document.getElementById('view-database').classList.add('hidden');
+
+            document.getElementById(viewId).classList.remove('hidden');
+            
+            // Manage Sidebar state displays dynamically to preserve space
+            if (viewId === 'view-game') {
+                document.getElementById('sidebar-live-game').classList.remove('hidden');
+                document.getElementById('sidebar-target-word').classList.remove('hidden');
+                document.getElementById('sidebar-home-btn').classList.remove('hidden');
+                document.getElementById('sidebar-global-stats').classList.add('hidden');
+                document.getElementById('sidebar-db-btn').classList.add('hidden');
+            } else {
+                document.getElementById('sidebar-live-game').classList.add('hidden');
+                document.getElementById('sidebar-target-word').classList.add('hidden');
+                document.getElementById('sidebar-home-btn').classList.add('hidden');
+                document.getElementById('sidebar-global-stats').classList.remove('hidden');
+                document.getElementById('sidebar-db-btn').classList.remove('hidden');
+                updateHomeStats();
+            }
+        }
+
+        function goHome() {
+            stopTimer();
+            showView('view-home');
+        }
+
+        function openDatabaseManager() {
+            stopTimer();
+            renderDatabaseTable();
+            showView('view-database');
+        }
+
+        function toggleImportHelp() {
+            const el = document.getElementById('import-help-box');
+            el.classList.toggle('hidden');
+        }
+
+        // DATABASE MANAGER LOGIC
+        function renderDatabaseTable() {
+            const tbody = document.getElementById('db-table-body');
+            tbody.innerHTML = '';
+
+            if (database.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-6 text-center text-gray-400">
+                            <i class="fa-regular fa-folder-open text-2xl block mb-2"></i>
+                            등록된 동사가 없습니다. 추가하거나 초기화 버튼을 클릭해 보세요.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            database.forEach((v) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-pastel-purple-50/50 transition border-b border-gray-100 text-xs";
+                tr.innerHTML = `
+                    <td class="p-2 font-semibold text-gray-700">${escapeHtml(v.base)}</td>
+                    <td class="p-2 text-gray-600">${escapeHtml(v.past)}</td>
+                    <td class="p-2 text-gray-600">${escapeHtml(v.pp)}</td>
+                    <td class="p-2 text-gray-800 font-medium">${escapeHtml(v.meaning)}</td>
+                    <td class="p-2 text-center">
+                        <button onclick="deleteVerb(${v.id})" class="text-rose-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition" title="삭제">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function deleteVerb(id) {
+            showCustomAlert('동사 삭제', '선택한 동사를 단어장에서 영구 삭제하시겠습니까?', 'warning', (confirmed) => {
+                if (confirmed) {
+                    database = database.filter(item => item.id !== id);
+                    saveDatabase();
+                    renderDatabaseTable();
+                }
+            }, true);
+        }
+
+        function resetToDefaults() {
+            showCustomAlert('초기화 알림', '기존 단어장을 모두 삭제하고, 기본 제공 25개 불규칙 동사 목록으로 복원하시겠습니까?', 'warning', (confirmed) => {
+                if (confirmed) {
+                    database = [...defaultVerbsList];
+                    saveDatabase();
+                    renderDatabaseTable();
+                    showCustomAlert('복원 완료', '기본 동사 목록이 성공적으로 복원되었습니다.', 'success');
+                }
+            }, true);
+        }
+
+        function handleSingleAdd(e) {
+            e.preventDefault();
+            const baseInput = document.getElementById('add-base');
+            const pastInput = document.getElementById('add-past');
+            const ppInput = document.getElementById('add-pp');
+            const meaningInput = document.getElementById('add-meaning');
+
+            const base = baseInput.value.trim().toLowerCase();
+            const past = pastInput.value.trim().toLowerCase();
+            const pp = ppInput.value.trim().toLowerCase();
+            const meaning = meaningInput.value.trim();
+
+            if (!base || !past || !pp || !meaning) {
+                showCustomAlert('오류', '모든 필드를 입력해 주세요.', 'error');
+                return;
+            }
+
+            // Check duplicate Base
+            if (database.some(v => v.base === base)) {
+                showCustomAlert('중복 알림', `이미 원형 '${base}' 동사가 등록되어 있습니다. 다른 단어를 추가해 주세요.`, 'warning');
+                return;
+            }
+
+            const newVerb = {
+                id: Date.now(),
+                base: base,
+                past: past,
+                pp: pp,
+                meaning: meaning
+            };
+
+            database.unshift(newVerb);
+            saveDatabase();
+            renderDatabaseTable();
+
+            // Clear inputs
+            baseInput.value = '';
+            pastInput.value = '';
+            ppInput.value = '';
+            meaningInput.value = '';
+            
+            showCustomAlert('추가 성공', `'${base}' 동사가 성공적으로 단어장에 추가되었습니다.`, 'success');
+        }
+
+        function handleBulkImport() {
+            const bulkText = document.getElementById('bulk-input-area').value.trim();
+            if (!bulkText) {
+                showCustomAlert('입력 오류', '가져올 텍스트 데이터를 먼저 입력 상자에 작성/붙여넣기 해주세요.', 'error');
+                return;
+            }
+
+            const lines = bulkText.split('\n');
+            let addedCount = 0;
+            let duplicateCount = 0;
+            let formatErrorCount = 0;
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+
+                // Split by tabs, commas or sequential spaces
+                let parts = [];
+                if (line.includes('\t')) {
+                    parts = line.split('\t');
+                } else if (line.includes(',')) {
+                    parts = line.split(',');
+                } else {
+                    parts = line.split(/\s+/); // fallback sequential spaces
+                }
+
+                // Clean columns
+                parts = parts.map(p => p.trim()).filter(p => p.length > 0);
+
+                // Check we have exactly 4 parts: [base, past, pp, meaning]
+                if (parts.length >= 4) {
+                    const base = parts[0].toLowerCase();
+                    const past = parts[1].toLowerCase();
+                    const pp = parts[2].toLowerCase();
+                    const meaning = parts.slice(3).join(' '); // Join remaining parts if meaning contains spaces
+
+                    // Skip duplicates
+                    if (database.some(v => v.base === base)) {
+                        duplicateCount++;
+                    } else {
+                        database.unshift({
+                            id: Date.now() + Math.random(),
+                            base: base,
+                            past: past,
+                            pp: pp,
+                            meaning: meaning
+                        });
+                        addedCount++;
+                    }
+                } else {
+                    formatErrorCount++;
+                }
+            });
+
+            if (addedCount > 0) {
+                saveDatabase();
+                renderDatabaseTable();
+                document.getElementById('bulk-input-area').value = ''; // clear upon success
+
+                let alertMsg = `성공적으로 ${addedCount}개의 동사가 일괄 등록되었습니다.`;
+                if (duplicateCount > 0) alertMsg += `\n(원형 중복 단어 건너뜀: ${duplicateCount}개)`;
+                if (formatErrorCount > 0) alertMsg += `\n(형식 미지원 데이터 건너뜀: ${formatErrorCount}개)`;
+
+                showCustomAlert('일괄 등록 완료', alertMsg, 'success');
+            } else {
+                showCustomAlert('등록 실패', '새로 등록된 데이터가 없습니다. 붙여넣은 텍스트의 구분 형식([원형] [과거] [분사] [뜻])을 점검해 주세요.', 'error');
+            }
+        }
+
+
+        // GAMEPLAY ENGINE LOGIC
+        function selectMode(mode) {
+            gameMode = mode;
+            
+            // Check enough verbs
+            const requiredVerbs = (mode === 'past') ? 15 : 10;
+            if (database.length < requiredVerbs) {
+                showCustomAlert('학습 동사 부족', `선택하신 모드를 실행하기 위해선 최소 ${requiredVerbs}개 이상의 동사가 단어장에 필요합니다. 단어장 관리에서 동사를 추가하거나 기본 데이터를 복원해 주세요. (현재 동사: ${database.length}개)`, 'warning', () => {
+                    openDatabaseManager();
+                });
+                return;
+            }
+
+            // Start
+            startGame();
+        }
+
+        function startGame() {
+            matchedVerbIds = [];
+            selectedSequence = [];
+
+            // Setup targeted verbs amount based on rules
+            const requiredCount = (gameMode === 'past') ? 15 : 10;
+            
+            // Shuffled pick from database
+            const shuffledDatabase = [...database].sort(() => Math.random() - 0.5);
+            gameVerbs = shuffledDatabase.slice(0, requiredCount);
+
+            // Set targets progress on the sidebar indicators
+            document.getElementById('sidebar-progress-total').innerText = gameVerbs.length;
+            document.getElementById('sidebar-progress-current').innerText = '0';
+
+            // Generate active visual card entities
+            activeCards = [];
+            gameVerbs.forEach(v => {
+                activeCards.push({ id: `b_${v.id}`, verbId: v.id, text: v.base, type: 'base' });
+                activeCards.push({ id: `p_${v.id}`, verbId: v.id, text: v.past, type: 'past' });
+                if (gameMode === 'pp') {
+                    activeCards.push({ id: `pp_${v.id}`, verbId: v.id, text: v.pp, type: 'pp' });
+                }
+            });
+
+            // Shuffle cards
+            activeCards.sort(() => Math.random() - 0.5);
+
+            // Render Board
+            renderGameBoard();
+
+            // Set sequence guide text & Show/Hide PP legend
+            const legendPp = document.getElementById('legend-pp');
+            if (gameMode === 'past') {
+                legendPp.classList.add('hidden');
+            } else {
+                legendPp.classList.remove('hidden');
+            }
+
+            // Select initial target
+            selectNextTargetVerb();
+
+            // Show Game Screen (Automatically handles sidebar swap)
+            showView('view-game');
+
+            // Timer init
+            startTimer();
+        }
+
+        function renderGameBoard() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+
+            activeCards.forEach(card => {
+                const button = document.createElement('button');
+                button.id = `card-entity-${card.id}`;
+                
+                // Base styling for all cards
+                let colorClasses = "";
+                
+                // Distinct 3-color assignment depending on card type (tense)
+                if (card.type === 'base') {
+                    colorClasses = "bg-pastel-blue-50/70 border-pastel-blue-200 text-pastel-blue-500 hover:bg-pastel-blue-100/50 hover:border-pastel-blue-300";
+                } else if (card.type === 'past') {
+                    colorClasses = "bg-pastel-pink-50/70 border-pastel-pink-200 text-pastel-pink-500 hover:bg-pastel-pink-100/50 hover:border-pastel-pink-300";
+                } else if (card.type === 'pp') {
+                    colorClasses = "bg-pastel-purple-50/70 border-pastel-purple-200 text-pastel-purple-500 hover:bg-pastel-purple-100/50 hover:border-pastel-purple-300";
+                }
+
+                // Compact height for scroll-free optimization: h-[70px] on mobile, up to h-28/h-32 on PC
+                button.className = `game-card relative h-[70px] sm:h-24 md:h-28 border-2 rounded-xl flex flex-col items-center justify-center p-2.5 text-center shadow-sm select-none transform active:scale-95 ${colorClasses}`;
+                
+                // Text configuration: Labels on top-left, word text is legible but responsive to prevent overflowing
+                button.innerHTML = `
+                    <span class="absolute top-1.5 left-2 text-[8px] sm:text-[10px] text-gray-400 font-bold tracking-wider uppercase">${getTenseLabel(card.type)}</span>
+                    <span class="text-sm sm:text-lg md:text-xl lg:text-2xl font-extrabold text-gray-700 tracking-wide break-all leading-none pt-2.5">${escapeHtml(card.text)}</span>
+                `;
+
+                button.onclick = () => handleCardClick(card);
+                grid.appendChild(button);
+            });
+        }
+
+        function getTenseLabel(type) {
+            if (type === 'base') return '원형';
+            if (type === 'past') return '과거형';
+            return '과거분사';
+        }
+
+        function selectNextTargetVerb() {
+            const remaining = gameVerbs.filter(v => !matchedVerbIds.includes(v.id));
+            if (remaining.length === 0) {
+                endGame(true);
+                return;
+            }
+
+            const nextTarget = remaining[Math.floor(Math.random() * remaining.length)];
+            currentTargetVerb = nextTarget;
+
+            document.getElementById('game-target-meaning').innerText = currentTargetVerb.meaning;
+            document.getElementById('sidebar-progress-current').innerText = matchedVerbIds.length;
+        }
+
+        function handleCardClick(card) {
+            if (matchedVerbIds.includes(card.verbId)) return;
+
+            const cardEl = document.getElementById(`card-entity-${card.id}`);
+            const expectedTypeOrder = (gameMode === 'past') ? ['base', 'past'] : ['base', 'past', 'pp'];
+            const nextExpectedIndex = selectedSequence.length;
+            const nextExpectedType = expectedTypeOrder[nextExpectedIndex];
+
+            // Correct card matching targeted word and correct sequence index
+            if (card.verbId === currentTargetVerb.id && card.type === nextExpectedType) {
+                selectedSequence.push(card);
+
+                // Distinct darker highlight based on type
+                cardEl.classList.remove('bg-pastel-blue-50/70', 'bg-pastel-pink-50/70', 'bg-pastel-purple-50/70', 'border-pastel-blue-200', 'border-pastel-pink-200', 'border-pastel-purple-200');
+                
+                if (card.type === 'base') {
+                    cardEl.classList.add('bg-pastel-blue-100', 'border-pastel-blue-400', 'scale-105', 'shadow-md');
+                } else if (card.type === 'past') {
+                    cardEl.classList.add('bg-pastel-pink-100', 'border-pastel-pink-400', 'scale-105', 'shadow-md');
+                } else if (card.type === 'pp') {
+                    cardEl.classList.add('bg-pastel-purple-100', 'border-pastel-purple-400', 'scale-105', 'shadow-md');
+                }
+
+                if (selectedSequence.length === expectedTypeOrder.length) {
+                    triggerSuccessMatch();
+                }
+            } else {
+                // Misclick/Error card clicked
+                triggerMismatchFailure(card);
+            }
+        }
+
+        function triggerSuccessMatch() {
+            const completedVerbId = currentTargetVerb.id;
+            matchedVerbIds.push(completedVerbId);
+
+            selectedSequence.forEach(card => {
+                const cardEl = document.getElementById(`card-entity-${card.id}`);
+                
+                // Clear state classes
+                cardEl.className = "game-card relative h-[70px] sm:h-24 md:h-28 border-2 rounded-xl flex flex-col items-center justify-center p-2.5 text-center shadow-sm select-none transform transition duration-300 bg-emerald-100 border-emerald-400 scale-95 opacity-0 pointer-events-none";
+                
+                cardEl.onclick = null;
+            });
+
+            const targetHeader = document.getElementById('game-target-meaning');
+            targetHeader.classList.add('text-emerald-500', 'scale-110');
+            setTimeout(() => {
+                targetHeader.classList.remove('text-emerald-500', 'scale-110');
+            }, 300);
+
+            selectedSequence = [];
+
+            setTimeout(() => {
+                selectNextTargetVerb();
+            }, 300);
+        }
+
+        function triggerMismatchFailure(clickedCard) {
+            const badCardEl = document.getElementById(`card-entity-${clickedCard.id}`);
+            
+            badCardEl.classList.add('shake-error');
+            setTimeout(() => {
+                badCardEl.classList.remove('shake-error');
+            }, 400);
+
+            selectedSequence.forEach(card => {
+                const cardEl = document.getElementById(`card-entity-${card.id}`);
+                cardEl.classList.add('shake-error');
+                
+                // Revert to original type-based color styles
+                setTimeout(() => {
+                    cardEl.classList.remove('shake-error', 'scale-105', 'shadow-md', 'bg-pastel-blue-100', 'bg-pastel-pink-100', 'bg-pastel-purple-100', 'border-pastel-blue-400', 'border-pastel-pink-400', 'border-pastel-purple-400');
+                    
+                    // Add back original classes
+                    if (card.type === 'base') {
+                        cardEl.classList.add('bg-pastel-blue-50/70', 'border-pastel-blue-200');
+                    } else if (card.type === 'past') {
+                        cardEl.classList.add('bg-pastel-pink-50/70', 'border-pastel-pink-200');
+                    } else if (card.type === 'pp') {
+                        cardEl.classList.add('bg-pastel-purple-50/70', 'border-pastel-purple-200');
+                    }
+                }, 400);
+            });
+
+            selectedSequence = [];
+        }
+
+
+        // TIMER LOGIC
+        function startTimer() {
+            stopTimer();
+            gameStartTime = Date.now();
+            timerInterval = setInterval(updateTimerDisplay, 33);
+        }
+
+        function updateTimerDisplay() {
+            const elapsed = Date.now() - gameStartTime;
+            document.getElementById('game-timer').innerText = formatTimeMs(elapsed);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function formatTimeMs(ms) {
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            const centiseconds = Math.floor((ms % 1000) / 10);
+
+            const mStr = String(minutes).padStart(2, '0');
+            const sStr = String(seconds).padStart(2, '0');
+            const cStr = String(centiseconds).padStart(2, '0');
+
+            return `${mStr}:${sStr}.${cStr}`;
+        }
+
+        function confirmExitGame() {
+            showCustomAlert('홈으로 이동', '진행 중인 학습 게임을 중단하고 홈 화면으로 돌아가시겠습니까?', 'warning', (confirmed) => {
+                if (confirmed) {
+                    goHome();
+                }
+            }, true);
+        }
+
+        function endGame(completed) {
+            stopTimer();
+            totalElapsedMs = Date.now() - gameStartTime;
+
+            if (completed) {
+                let newRecordSet = false;
+                const recordKey = (gameMode === 'past') ? 'best_record_past' : 'best_record_pp';
+                const currentBest = localStorage.getItem(recordKey);
+
+                if (!currentBest || totalElapsedMs < parseInt(currentBest)) {
+                    localStorage.setItem(recordKey, totalElapsedMs.toString());
+                    newRecordSet = true;
+                }
+
+                document.getElementById('result-mode').innerText = (gameMode === 'past') ? '과거형 모드 (15단어)' : '과거분사형 모드 (10단어)';
+                document.getElementById('result-time').innerText = formatTimeMs(totalElapsedMs);
+                
+                const badge = document.getElementById('result-record-badge');
+                if (newRecordSet) {
+                    badge.innerText = '🥇 최고 기록 갱신!';
+                    badge.className = "font-bold text-emerald-500 text-xs px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 animate-bounce";
+                } else {
+                    badge.innerText = `기존 최고 기록: ${formatTimeMs(parseInt(currentBest))}`;
+                    badge.className = "font-medium text-gray-500 text-xs px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100";
+                }
+
+                showView('view-result');
+                triggerConfettiCelebrate();
+            } else {
+                goHome();
+            }
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        function triggerConfettiCelebrate() {
+            const end = Date.now() + (2 * 1000);
+            const colors = ['#FF8787', '#C084FC', '#FFF5F5', '#E9D5FF'];
+
+            (function frame() {
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: colors
+                });
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: colors
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+    </script>
+</body>
+</html>
